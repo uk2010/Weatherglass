@@ -130,16 +130,12 @@ pub fn build_window(app: &adw::Application) {
     location_actions.set_margin_start(8);
     location_actions.set_margin_end(8);
     location_actions.set_margin_top(4);
-    let add = gtk::Button::with_label("Add");
-    let add_content = gtk::Box::new(Orientation::Horizontal, 7);
-    let add_icon = gtk::Image::from_icon_name("list-add-symbolic");
-    let add_label = gtk::Label::new(Some("Add Location"));
-    add_content.append(&add_icon);
-    add_content.append(&add_label);
-    add.set_child(Some(&add_content));
+    let add = gtk::Button::from_icon_name("list-add-symbolic");
+    add.set_tooltip_text(Some("Add Location"));
     add.set_action_name(Some("win.search"));
     add.set_hexpand(false);
-    add.set_width_request(190);
+    add.set_width_request(40);
+    add.set_height_request(32);
     add.add_css_class("add-location");
     let rename = widgets::icon_button("document-edit-symbolic", "Rename selected location");
     rename.set_action_name(Some("win.rename"));
@@ -3192,7 +3188,7 @@ button.flat { padding:7px; border-radius:10px; }
 .sidebar-range { font-size:13px; color:alpha(white,.68); }
 .sidebar-temp { font-size:31px; font-weight:350; letter-spacing:-1px; }
 .sidebar-condition-icon { font-size:24px; color:#ffca2b; }
-.add-location { min-height:32px; margin:6px 8px 7px; padding:0 10px; border-radius:9px; border:1px solid alpha(white,.16); background:alpha(#21344c,.72); font-size:13px; }
+.add-location { min-width:40px; min-height:32px; margin:6px 8px 7px; padding:0; border-radius:9px; border:1px solid alpha(white,.16); background:alpha(#21344c,.72); }
 .add-location:hover { background:alpha(#2d5275,.85); border-color:alpha(#71bcff,.70); }
 .dialog-cancel { min-height:36px; padding:0 18px; border-radius:10px; border:1px solid alpha(white,.16); background:alpha(#21344c,.72); }
 .attribution-small { font-size:12px; margin:10px 16px 15px; color:#52b1ff; }
