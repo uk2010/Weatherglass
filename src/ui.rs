@@ -16,7 +16,7 @@ use crate::{
     widgets,
 };
 use adw::prelude::*;
-use chrono::{Timelike, Utc};
+use chrono::Utc;
 use chrono_tz::Tz;
 use gtk::{Align, Orientation, gdk, gio, glib};
 use std::{cell::RefCell, collections::HashMap, io::Cursor, rc::Rc, sync::Arc};
@@ -75,21 +75,21 @@ pub fn build_window(app: &adw::Application) {
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title("Weatherglass")
-        // GTK's client area plus the desktop frame lands at approximately 1024×768.
-        .default_width(974)
-        .default_height(718)
+        .default_width(1280)
+        .default_height(820)
         .icon_name("io.github.weatherglass.Weatherglass")
         .build();
     let toast = adw::ToastOverlay::new();
     let split = adw::OverlaySplitView::new();
-    split.set_sidebar_width_fraction(0.20);
-    split.set_min_sidebar_width(185.0);
-    split.set_max_sidebar_width(205.0);
+    split.set_sidebar_width_fraction(0.235);
+    split.set_min_sidebar_width(285.0);
+    split.set_max_sidebar_width(360.0);
     toast.set_child(Some(&split));
     window.set_content(Some(&toast));
     let sidebar = gtk::Box::new(Orientation::Vertical, 0);
     sidebar.add_css_class("sidebar");
     let side_header = adw::HeaderBar::new();
+    side_header.add_css_class("sidebar-header");
     let title = gtk::Label::new(Some("Locations"));
     title.add_css_class("title");
     side_header.set_title_widget(Some(&title));
@@ -104,7 +104,14 @@ pub fn build_window(app: &adw::Application) {
     side_header.pack_end(&settings);
     sidebar.append(&side_header);
     let sidebar_search = gtk::Button::with_label("Search locations");
-    sidebar_search.set_icon_name("system-search-symbolic");
+    let search_content = gtk::Box::new(Orientation::Horizontal, 10);
+    let search_icon = gtk::Image::from_icon_name("system-search-symbolic");
+    let search_label = gtk::Label::new(Some("Search locations"));
+    search_label.set_xalign(0.0);
+    search_label.set_hexpand(true);
+    search_content.append(&search_icon);
+    search_content.append(&search_label);
+    sidebar_search.set_child(Some(&search_content));
     sidebar_search.set_action_name(Some("win.search"));
     sidebar_search.add_css_class("sidebar-search");
     sidebar_search.set_tooltip_text(Some("Search or enter coordinates (Ctrl+L)"));
@@ -124,9 +131,16 @@ pub fn build_window(app: &adw::Application) {
     location_actions.set_margin_end(8);
     location_actions.set_margin_top(4);
     let add = gtk::Button::with_label("Add");
-    add.set_icon_name("list-add-symbolic");
+    let add_content = gtk::Box::new(Orientation::Horizontal, 7);
+    let add_icon = gtk::Image::from_icon_name("list-add-symbolic");
+    let add_label = gtk::Label::new(Some("Add Location"));
+    add_content.append(&add_icon);
+    add_content.append(&add_label);
+    add.set_child(Some(&add_content));
     add.set_action_name(Some("win.search"));
-    add.set_hexpand(true);
+    add.set_hexpand(false);
+    add.set_width_request(190);
+    add.add_css_class("add-location");
     let rename = widgets::icon_button("document-edit-symbolic", "Rename selected location");
     rename.set_action_name(Some("win.rename"));
     let delete = widgets::icon_button("user-trash-symbolic", "Remove selected location (Delete)");
@@ -144,6 +158,7 @@ pub fn build_window(app: &adw::Application) {
     split.set_sidebar(Some(&sidebar));
     let content = gtk::Box::new(Orientation::Vertical, 0);
     let header = adw::HeaderBar::new();
+    header.add_css_class("main-header");
     let reveal = widgets::icon_button("sidebar-show-symbolic", "Show saved locations");
     {
         let split = split.clone();
@@ -213,7 +228,7 @@ pub fn build_window(app: &adw::Application) {
     let sized_window = window.clone();
     glib::timeout_add_local_once(std::time::Duration::from_millis(150), move || {
         sized_window.unmaximize();
-        sized_window.set_default_size(974, 718);
+        sized_window.set_default_size(1280, 820);
     });
 }
 
@@ -334,17 +349,17 @@ fn clear_list(b: &gtk::ListBox) {
 fn render_sidebar(state: &Rc<RefCell<UiState>>, views: &ViewRefs, store: &LocationStore) {
     clear_list(&views.list);
     let snapshot = state.borrow();
-    for (index, l) in snapshot.locations.iter().enumerate() {
+    for l in &snapshot.locations {
         let row = gtk::ListBoxRow::new();
         row.add_css_class("location-card");
         row.set_activatable(true);
         row.set_tooltip_text(Some("Select location; drag to reorder"));
-        let line = gtk::Box::new(Orientation::Horizontal, 7);
-        line.set_margin_start(9);
-        line.set_margin_end(6);
-        line.set_margin_top(6);
-        line.set_margin_bottom(6);
-        let text = gtk::Box::new(Orientation::Vertical, 2);
+        let line = gtk::Box::new(Orientation::Horizontal, 10);
+        line.set_margin_start(14);
+        line.set_margin_end(12);
+        line.set_margin_top(12);
+        line.set_margin_bottom(12);
+        let text = gtk::Box::new(Orientation::Vertical, 4);
         text.set_hexpand(true);
         let top = gtk::Box::new(Orientation::Horizontal, 8);
         let name = gtk::Label::new(Some(&l.display_name));
@@ -354,11 +369,10 @@ fn render_sidebar(state: &Rc<RefCell<UiState>>, views: &ViewRefs, store: &Locati
         top.append(&name);
         let tz: Tz = l.timezone.parse().unwrap_or(chrono_tz::UTC);
         let time = Utc::now().with_timezone(&tz);
-        let local = gtk::Label::new(Some(&format!("{:02}:{:02}", time.hour(), time.minute())));
-        local.add_css_class("dim-label");
+        let local = gtk::Label::new(Some(&time.format("%-I:%M %p").to_string()));
+        local.add_css_class("location-time");
         top.append(&local);
         text.append(&top);
-        let sub = gtk::Box::new(Orientation::Horizontal, 8);
         let weather = snapshot.weather.get(&l.id);
         let summary = weather
             .and_then(|w| w.current_weather.as_ref())
@@ -366,17 +380,8 @@ fn render_sidebar(state: &Rc<RefCell<UiState>>, views: &ViewRefs, store: &Locati
             .unwrap_or("Not updated");
         let cond = gtk::Label::new(Some(summary));
         cond.set_xalign(0.0);
-        cond.add_css_class("dim-label");
-        cond.set_hexpand(true);
-        sub.append(&cond);
-        let temp = weather
-            .and_then(|w| w.current_weather.as_ref())
-            .map(|c| format_temp(c.temperature, snapshot.settings.temperature))
-            .unwrap_or_else(|| "—".into());
-        let t = gtk::Label::new(Some(&temp));
-        t.add_css_class("sidebar-temp");
-        sub.append(&t);
-        text.append(&sub);
+        cond.add_css_class("location-condition");
+        text.append(&cond);
         let range_text = weather
             .and_then(|weather| weather.forecast_daily.as_ref())
             .and_then(|daily| daily.days.first())
@@ -393,14 +398,27 @@ fn render_sidebar(state: &Rc<RefCell<UiState>>, views: &ViewRefs, store: &Locati
         range.add_css_class("sidebar-range");
         text.append(&range);
         line.append(&text);
-        let controls = gtk::Box::new(Orientation::Vertical, 0);
-        let up = widgets::icon_button("go-up-symbolic", "Move location up");
-        up.set_sensitive(index > 0);
-        let down = widgets::icon_button("go-down-symbolic", "Move location down");
-        down.set_sensitive(index + 1 < snapshot.locations.len());
-        controls.append(&up);
-        controls.append(&down);
-        line.append(&controls);
+        let weather_side = gtk::Box::new(Orientation::Horizontal, 8);
+        weather_side.set_valign(Align::Center);
+        weather_side.set_halign(Align::End);
+        let temp = weather
+            .and_then(|w| w.current_weather.as_ref())
+            .map(|c| format_temp(c.temperature, snapshot.settings.temperature))
+            .unwrap_or_else(|| "—".into());
+        let current_temp = gtk::Label::new(Some(&temp));
+        current_temp.add_css_class("sidebar-temp");
+        current_temp.set_halign(Align::End);
+        let icon = gtk::Label::new(Some(
+            weather
+                .and_then(|w| w.current_weather.as_ref())
+                .map(|c| conditions::present(&c.condition_code, c.daylight).symbol)
+                .unwrap_or("◌"),
+        ));
+        icon.add_css_class("sidebar-condition-icon");
+        icon.set_halign(Align::End);
+        weather_side.append(&current_temp);
+        weather_side.append(&icon);
+        line.append(&weather_side);
         row.set_child(Some(&line));
         if snapshot.selected.as_deref() == Some(&l.id) {
             row.add_css_class("selected-location")
@@ -414,20 +432,6 @@ fn render_sidebar(state: &Rc<RefCell<UiState>>, views: &ViewRefs, store: &Locati
             let click = gtk::GestureClick::new();
             click.connect_released(move |_, _, _, _| select_location(&id, &s, &v, &st));
             row.add_controller(click);
-        }
-        {
-            let s = state.clone();
-            let v = views.clone();
-            let st = store.clone();
-            let id = id.clone();
-            up.connect_clicked(move |_| move_location(&id, -1, &s, &v, &st));
-        }
-        {
-            let s = state.clone();
-            let v = views.clone();
-            let st = store.clone();
-            let id = id.clone();
-            down.connect_clicked(move |_| move_location(&id, 1, &s, &v, &st));
         }
         let drag = gtk::DragSource::builder()
             .actions(gdk::DragAction::MOVE)
@@ -490,30 +494,6 @@ fn select_location(
     if views.split.is_collapsed() {
         views.split.set_show_sidebar(false)
     }
-}
-fn move_location(
-    id: &str,
-    delta: isize,
-    state: &Rc<RefCell<UiState>>,
-    views: &ViewRefs,
-    store: &LocationStore,
-) {
-    let mut s = state.borrow_mut();
-    if let Some(from) = s.locations.iter().position(|x| x.id == id) {
-        let to =
-            (from as isize + delta).clamp(0, s.locations.len().saturating_sub(1) as isize) as usize;
-        s.locations.swap(from, to);
-        for (i, l) in s.locations.iter_mut().enumerate() {
-            l.sort_order = i as i64;
-        }
-    }
-    let ids = s.locations.iter().map(|x| x.id.clone()).collect();
-    drop(s);
-    let st = store.clone();
-    RUNTIME.spawn(async move {
-        let _ = st.reorder(ids).await;
-    });
-    render_sidebar(state, views, store)
 }
 fn drop_before(
     source: &str,
@@ -578,10 +558,10 @@ fn forecast_page(
 ) -> gtk::Box {
     let page = gtk::Box::new(Orientation::Vertical, 8);
     page.add_css_class("forecast-page");
-    page.set_margin_start(7);
-    page.set_margin_end(7);
-    page.set_margin_top(6);
-    page.set_margin_bottom(7);
+    page.set_margin_start(14);
+    page.set_margin_end(14);
+    page.set_margin_top(10);
+    page.set_margin_bottom(14);
     page.set_halign(Align::Fill);
     if state.demo {
         let banner = adw::Banner::new("Demo data — refreshing from Open-Meteo…");
@@ -589,31 +569,54 @@ fn forecast_page(
         page.append(&banner)
     }
     if let Some(c) = &w.current_weather {
-        let hero = gtk::Box::new(Orientation::Vertical, 1);
+        let hero = gtk::Box::new(Orientation::Vertical, 8);
         hero.add_css_class("hero");
+        let hero_top = gtk::Box::new(Orientation::Horizontal, 8);
+        hero_top.add_css_class("hero-top");
+        let hero_left = gtk::Box::new(Orientation::Vertical, 5);
+        hero_left.set_hexpand(true);
         let location = gtk::Label::new(Some(&l.display_name));
         location.add_css_class("hero-location");
+        location.set_xalign(0.0);
         let tz: Tz = l.timezone.parse().unwrap_or(chrono_tz::UTC);
         let local = Utc::now().with_timezone(&tz);
-        let updated_text = if state.demo {
-            "Demo data".into()
-        } else {
-            format!("Updated {}", c.as_of.with_timezone(&tz).format("%-I:%M %p"))
-        };
         let date = gtk::Label::new(Some(&format!(
-            "{} · {} · {updated_text}",
-            local.format("%a, %b %-d"),
+            "{} · {}",
+            local.format("%A, %b %-d"),
             local.format("%-I:%M %p"),
         )));
         date.add_css_class("hero-date");
+        date.set_xalign(0.0);
+        let updated = gtk::Label::new(Some(&if state.demo {
+            "Demo data".to_string()
+        } else {
+            format!("Updated {}", c.as_of.with_timezone(&tz).format("%-I:%M %p"))
+        }));
+        updated.add_css_class("hero-updated");
+        updated.set_xalign(0.0);
+        hero_left.append(&location);
+        hero_left.append(&date);
+        hero_left.append(&updated);
+        let hero_right = gtk::Box::new(Orientation::Vertical, 1);
+        hero_right.set_halign(Align::End);
+        hero_right.set_valign(Align::Center);
+        let temperature_line = gtk::Box::new(Orientation::Horizontal, 8);
+        temperature_line.set_halign(Align::End);
         let temp = gtk::Label::new(Some(&format_temp(
             c.temperature,
             state.settings.temperature,
         )));
         temp.add_css_class("hero-temp");
+        let icon = gtk::Label::new(Some(
+            conditions::present(&c.condition_code, c.daylight).symbol,
+        ));
+        icon.add_css_class("hero-icon");
+        temperature_line.append(&temp);
+        temperature_line.append(&icon);
         let p = conditions::present(&c.condition_code, c.daylight);
-        let condition = gtk::Label::new(Some(&format!("{}  {}", p.symbol, p.description)));
+        let condition = gtk::Label::new(Some(p.description));
         condition.add_css_class("hero-condition");
+        condition.set_halign(Align::End);
         let hi_lo = w
             .forecast_daily
             .as_ref()
@@ -626,23 +629,31 @@ fn forecast_page(
                 )
             })
             .unwrap_or_default();
-        condition.set_text(&format!("{}  {} · {hi_lo}", p.symbol, p.description));
-        hero.append(&location);
-        hero.append(&date);
-        hero.append(&temp);
-        hero.append(&condition);
+        let range = gtk::Label::new(Some(
+            &hi_lo.replace("High", "High").replace("   Low", "   Low"),
+        ));
+        range.add_css_class("hero-range");
+        range.set_halign(Align::End);
+        hero_right.append(&temperature_line);
+        hero_right.append(&condition);
+        hero_right.append(&range);
+        hero_top.append(&hero_left);
+        hero_top.append(&hero_right);
+        hero.append(&hero_top);
         page.append(&hero)
     }
     let dashboard = gtk::Grid::new();
     dashboard.add_css_class("weather-dashboard");
-    dashboard.set_column_spacing(10);
-    dashboard.set_row_spacing(10);
+    dashboard.set_column_spacing(14);
+    dashboard.set_row_spacing(14);
+    dashboard.set_hexpand(true);
     dashboard.set_column_homogeneous(false);
     let lower_right = gtk::Box::new(Orientation::Vertical, 10);
-    lower_right.set_width_request(275);
+    lower_right.add_css_class("radar-column");
+    lower_right.set_width_request(390);
     lower_right.set_hexpand(true);
     lower_right.set_valign(Align::Start);
-    dashboard.attach(&lower_right, 1, 1, 1, 1);
+    dashboard.attach(&lower_right, 1, 2, 1, 1);
     if let Some(alerts) = &w.weather_alerts {
         for alert in &alerts.details {
             let card = gtk::Box::new(Orientation::Vertical, 7);
@@ -676,16 +687,20 @@ fn forecast_page(
         }
     }
     if let Some(hourly) = &w.forecast_hourly {
-        let (sec, body) = widgets::section("HOURLY FORECAST", None);
+        let sec = gtk::Box::new(Orientation::Vertical, 0);
+        sec.add_css_class("hourly-panel");
+        let body = gtk::Box::new(Orientation::Vertical, 8);
         let scroll = gtk::ScrolledWindow::builder()
-            .hscrollbar_policy(gtk::PolicyType::External)
-            .vscrollbar_policy(gtk::PolicyType::External)
-            .min_content_height(88)
+            .hscrollbar_policy(gtk::PolicyType::Never)
+            .vscrollbar_policy(gtk::PolicyType::Never)
+            .min_content_height(112)
             .build();
         let row = gtk::Box::new(Orientation::Horizontal, 5);
+        row.set_homogeneous(true);
+        row.set_hexpand(true);
         let tz: Tz = l.timezone.parse().unwrap_or(chrono_tz::UTC);
         let first_hour = current_hour_index(&hourly.hours, Utc::now());
-        for (visible_index, h) in hourly.hours.iter().skip(first_hour).take(24).enumerate() {
+        for (visible_index, h) in hourly.hours.iter().skip(first_hour).take(12).enumerate() {
             let item = gtk::Box::new(Orientation::Vertical, 3);
             item.add_css_class("hour-tile");
             let dt = h.forecast_start.with_timezone(&tz);
@@ -717,6 +732,7 @@ fn forecast_page(
         scroll.set_child(Some(&row));
         body.append(&scroll);
         let metrics = gtk::Box::new(Orientation::Horizontal, 4);
+        metrics.add_css_class("metric-tabs");
         let chart = gtk::Box::new(Orientation::Vertical, 6);
         chart.add_css_class("chart");
         let chart_summary = gtk::Label::new(None);
@@ -738,6 +754,7 @@ fn forecast_page(
         for metric in metric_choices {
             let b = gtk::ToggleButton::with_label(metric.label());
             b.add_css_class("pill");
+            b.add_css_class("metric-tab");
             b.set_tooltip_text(Some(&format!(
                 "Show the hourly {} chart",
                 metric.label().to_lowercase()
@@ -771,12 +788,18 @@ fn forecast_page(
             metrics.append(&b)
         }
         let metric_scroll = gtk::ScrolledWindow::builder()
-            .hscrollbar_policy(gtk::PolicyType::External)
-            .vscrollbar_policy(gtk::PolicyType::External)
-            .min_content_height(34)
+            .hscrollbar_policy(gtk::PolicyType::Never)
+            .vscrollbar_policy(gtk::PolicyType::Never)
+            .min_content_height(38)
+            .max_content_height(44)
+            .css_classes(["metric-tabs-scroll"])
             .child(&metrics)
             .build();
-        body.append(&metric_scroll);
+        sec.append(&body);
+        dashboard.attach(&sec, 0, 0, 2, 1);
+        let metric_area = gtk::Box::new(Orientation::Vertical, 6);
+        metric_area.add_css_class("metric-area");
+        metric_area.append(&metric_scroll);
         render_hourly_chart(
             &chart,
             &chart_summary,
@@ -785,12 +808,13 @@ fn forecast_page(
             &state.settings,
             tz,
         );
-        body.append(&chart);
-        body.append(&chart_summary);
-        dashboard.attach(&sec, 0, 0, 2, 1)
+        metric_area.append(&chart);
+        metric_area.append(&chart_summary);
+        dashboard.attach(&metric_area, 0, 1, 2, 1)
     }
     if let Some(daily) = &w.forecast_daily {
         let (sec, body) = widgets::section("10-DAY FORECAST", None);
+        sec.add_css_class("ten-day-card");
         let global_min = daily
             .days
             .iter()
@@ -849,13 +873,14 @@ fn forecast_page(
         }
         sec.set_hexpand(true);
         sec.set_valign(Align::Start);
-        dashboard.attach(&sec, 0, 1, 1, 1)
+        dashboard.attach(&sec, 0, 2, 1, 1)
     }
     page.append(&dashboard);
     if let Some(c) = &w.current_weather {
         let grid = gtk::FlowBox::new();
+        grid.add_css_class("conditions-grid");
         grid.set_selection_mode(gtk::SelectionMode::None);
-        grid.set_max_children_per_line(4);
+        grid.set_max_children_per_line(5);
         grid.set_min_children_per_line(2);
         grid.set_column_spacing(10);
         grid.set_row_spacing(10);
@@ -918,8 +943,8 @@ fn forecast_page(
                     .unwrap_or_else(|| "Moon times unavailable".into()),
             ),
             widgets::metric_card(
-                "◐",
-                "SUNRISE & SUNSET",
+                "☀",
+                "SUNRISE",
                 &day.and_then(|d| d.sunrise)
                     .map(|time| {
                         time.with_timezone(&l.timezone.parse::<Tz>().unwrap_or(chrono_tz::UTC))
@@ -927,15 +952,19 @@ fn forecast_page(
                             .to_string()
                     })
                     .unwrap_or_else(|| "—".into()),
+                "First light",
+            ),
+            widgets::metric_card(
+                "☀",
+                "SUNSET",
                 &day.and_then(|d| d.sunset)
                     .map(|time| {
-                        format!(
-                            "Sunset {}",
-                            time.with_timezone(&l.timezone.parse::<Tz>().unwrap_or(chrono_tz::UTC))
-                                .format("%-I:%M %p")
-                        )
+                        time.with_timezone(&l.timezone.parse::<Tz>().unwrap_or(chrono_tz::UTC))
+                            .format("%-I:%M %p")
+                            .to_string()
                     })
-                    .unwrap_or_default(),
+                    .unwrap_or_else(|| "—".into()),
+                "Last light",
             ),
             widgets::metric_card(
                 "☀",
@@ -1448,9 +1477,14 @@ fn radar_layers_button() -> (gtk::MenuButton, Rc<RefCell<RadarLayerState>>) {
         .icon_name("view-grid-symbolic")
         .tooltip_text("Choose radar layers")
         .build();
-    button.add_css_class("pill");
+    button.add_css_class("layer-button");
+    button.set_width_request(40);
+    button.set_height_request(38);
+    button.set_hexpand(false);
+    button.set_halign(Align::Center);
     let popover = gtk::Popover::new();
     let content = gtk::Box::new(Orientation::Vertical, 10);
+    content.add_css_class("layer-menu");
     content.set_margin_top(12);
     content.set_margin_bottom(12);
     content.set_margin_start(12);
@@ -1959,7 +1993,9 @@ fn radar_viewport() -> (gtk::ScrolledWindow, gtk::Stack) {
         // External keeps the child scrollable without allocating visible bars.
         .hscrollbar_policy(gtk::PolicyType::External)
         .vscrollbar_policy(gtk::PolicyType::External)
-        .kinetic_scrolling(true)
+        // Panning is an explicit primary-button drag.  In particular, a
+        // trackpad scroll must not move the map underneath the pointer.
+        .kinetic_scrolling(false)
         .propagate_natural_width(false)
         .propagate_natural_height(false)
         .build();
@@ -2008,6 +2044,10 @@ fn radar_viewport() -> (gtk::ScrolledWindow, gtk::Stack) {
         });
     }
     viewport.add_controller(press);
+    let wheel = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::BOTH_AXES);
+    wheel.set_propagation_phase(gtk::PropagationPhase::Capture);
+    wheel.connect_scroll(|_, _, _| glib::Propagation::Stop);
+    viewport.add_controller(wheel);
     viewport.set_cursor_from_name(Some("grab"));
     viewport.set_tooltip_text(Some("Drag to move around the radar map"));
     let stack = gtk::Stack::new();
@@ -2493,12 +2533,35 @@ fn show_search(state: &Rc<RefCell<UiState>>, views: &ViewRefs, store: &LocationS
         .vexpand(true)
         .child(&results)
         .build();
+    let actions = gtk::Box::new(Orientation::Horizontal, 8);
+    actions.set_halign(Align::End);
+    let cancel = gtk::Button::with_label("Cancel");
+    cancel.add_css_class("dialog-cancel");
+    actions.append(&cancel);
     root.append(&title);
     root.append(&note);
     root.append(&line);
     root.append(&current);
     root.append(&scroll);
+    root.append(&actions);
     dialog.set_content(Some(&root));
+    {
+        let dialog = dialog.clone();
+        cancel.connect_clicked(move |_| dialog.close());
+    }
+    let escape = gtk::EventControllerKey::new();
+    {
+        let dialog = dialog.clone();
+        escape.connect_key_pressed(move |_, key, _, _| {
+            if key == gdk::Key::Escape {
+                dialog.close();
+                glib::Propagation::Stop
+            } else {
+                glib::Propagation::Proceed
+            }
+        });
+    }
+    root.add_controller(escape);
     let search_action = {
         let results = results.clone();
         let entry = entry.clone();
@@ -3079,64 +3142,106 @@ fn toast(views: &ViewRefs, message: &str) {
 }
 
 const CSS: &str = r#"
-window { font-family:"Ubuntu Sans",sans-serif; font-size:14px; }
-.sidebar { background:linear-gradient(180deg,#292a40,#202538); border-right:1px solid alpha(white,.10); }
-.forecast-page { background:linear-gradient(145deg,#11152f 0%,#1c244a 42%,#344b70 100%); color:white; border-radius:18px 18px 0 0; }
-.forecast-card,.metric-card,.alert-card,.radar-card { background:alpha(#293354,.82); border:1px solid alpha(white,.10); box-shadow:0 6px 16px alpha(black,.14); border-radius:13px; padding:9px; }
-.light .sidebar { background:linear-gradient(180deg,#e8effb,#d7e2f5); color:#16233d; border-color:alpha(#16233d,.12); }
-.light .forecast-page { background:linear-gradient(145deg,#eef5ff 0%,#dce9fb 46%,#c4d8f3 100%); color:#14213a; }
-.light .forecast-card,.light .metric-card,.light .alert-card,.light .radar-card { background:alpha(white,.72); color:#14213a; border-color:alpha(#24436a,.14); box-shadow:0 6px 16px alpha(#24436a,.10); }
+* { -gtk-icon-style: symbolic; }
+window { font-family:"Inter","Ubuntu Sans",sans-serif; font-size:15px; background:#071120; color:#f5f7fc; }
+headerbar { min-height:58px; padding:0 16px; background:alpha(#081321,.90); border:0; box-shadow:none; }
+.main-header { border-bottom:1px solid alpha(white,.07); }
+.sidebar-header { min-height:62px; background:transparent; }
+button { color:inherit; background:transparent; background-image:none; border:0; box-shadow:none; text-shadow:none; }
+button:hover { background:alpha(white,.08); }
+button:active { background:alpha(white,.14); }
+button:focus-visible { outline:2px solid #53adff; outline-offset:2px; }
+button.flat { padding:7px; border-radius:10px; }
+.sidebar { background:linear-gradient(165deg,#091422 0%,#07101e 52%,#0a1728 100%); border-right:1px solid alpha(white,.12); }
+.forecast-page { background:linear-gradient(145deg,#0d1d33 0%,#102946 45%,#132a45 100%); color:#f5f7fc; border-radius:20px 20px 0 0; }
+.forecast-card,.metric-card,.alert-card,.radar-card { background:alpha(#182b43,.84); border:1px solid alpha(white,.09); box-shadow:0 8px 24px alpha(black,.18); border-radius:14px; padding:12px; }
+.light window { color:#14213a; background:#e4edf8; }
+.light .sidebar { background:linear-gradient(165deg,#eef5fc,#dbe8f7); color:#14213a; border-color:alpha(#14213a,.14); }
+.light .main-header { background:alpha(#eaf2fd,.88); border-color:alpha(#14213a,.08); }
+.light .forecast-page { background:linear-gradient(145deg,#eff6ff 0%,#dceafb 46%,#c6daf1 100%); color:#14213a; }
+.light .forecast-card,.light .metric-card,.light .alert-card,.light .radar-card { background:alpha(white,.72); color:#14213a; border-color:alpha(#24436a,.14); box-shadow:0 8px 22px alpha(#24436a,.10); }
 .light .forecast-page .dim-label,.light .sidebar .dim-label { color:alpha(#14213a,.68); }
-.light .hour-tile { background:alpha(#52709e,.10); }
+.light .hourly-panel,.light .metric-tabs { background:alpha(#50709c,.10); border-color:alpha(#14213a,.12); }
 .light .day-row { border-color:alpha(#14213a,.14); }
-.light .sidebar-range { color:alpha(#14213a,.68); }
+.light .sidebar-range,.light .location-time { color:alpha(#14213a,.68); }
 .light .location-list row { background:alpha(white,.35); border-color:alpha(#14213a,.08); }
-.light .selected-location { background:alpha(#6ca7e8,.28); border-color:alpha(#315f95,.35); }
-.hero { padding:4px 8px; }
-.hero-location { font-size:18px; font-weight:700; }
-.hero-date { font-size:10px; opacity:.78; }
-.hero-temp { font-size:36px; font-weight:300; letter-spacing:-2px; margin-top:0; }
-.hero-condition { font-size:14px; font-weight:600; }
-.hero-range { font-size:12px; }
-.section-title,.metric-title { font-size:12px; font-weight:800; letter-spacing:1.2px; opacity:.75; }
-.metric-title { letter-spacing:.7px; }
-.metric-value { font-size:18px; font-weight:500; }
-.metric-icon { font-size:17px; color:#9edcff; }
+.light .selected-location { background:alpha(#6ca7e8,.28); border-color:alpha(#315f95,.50); }
+.hero { min-height:178px; padding:22px 28px 18px; border-radius:18px; background:linear-gradient(135deg,alpha(#1a4675,.96),alpha(#143457,.85) 55%,alpha(#7b8d9d,.58)); border:1px solid alpha(white,.10); box-shadow:inset 0 -50px 80px alpha(#071120,.24); }
+.hero-top { min-height:130px; }
+.hero-location { font-size:31px; font-weight:750; letter-spacing:-.6px; }
+.hero-date { font-size:16px; color:alpha(white,.80); }
+.hero-updated { font-size:14px; color:alpha(white,.62); }
+.hero-temp { font-size:62px; font-weight:300; letter-spacing:-3px; line-height:1; }
+.hero-icon { font-size:49px; color:#ffd43b; line-height:1; }
+.hero-condition { font-size:17px; font-weight:600; }
+.hero-range { font-size:16px; color:alpha(white,.86); }
+.section-title,.metric-title { font-size:13px; font-weight:800; letter-spacing:1.5px; opacity:.86; }
+.metric-title { letter-spacing:.8px; }
+.metric-value { font-size:21px; font-weight:550; }
+.metric-icon { font-size:19px; color:#9edcff; }
 .forecast-page .dim-label { color:alpha(white,.70); }
-.sidebar-search { margin:7px 8px 5px; border-radius:999px; background:alpha(white,.10); color:alpha(white,.72); }
-.location-list row { border-radius:13px; margin:3px 7px; background:alpha(white,.045); border:1px solid alpha(white,.04); }
+.sidebar-search { margin:0 19px 12px; min-height:40px; padding:0 13px; border-radius:12px; border:1px solid alpha(white,.20); background:alpha(#020811,.32); color:alpha(white,.70); }
+.sidebar-search:hover { border-color:alpha(#7ccaff,.75); background:alpha(#142a43,.55); }
+.location-list { padding:0 7px; }
+.location-list row { border-radius:14px; margin:5px 7px; background:alpha(white,.045); border:1px solid alpha(white,.055); }
 .location-list row:hover { background:alpha(white,.10); }
-.selected-location { background:alpha(#7785bb,.28); border-color:alpha(white,.38); }
-.location-name { font-weight:700; }
-.sidebar-range { font-size:10px; color:alpha(white,.72); }
-.sidebar-temp { font-size:18px; font-weight:600; }
-.hour-tile { min-width:50px; padding:3px; border-radius:9px; background:alpha(white,.06); font-size:10px; }
-.hour-icon,.day-icon { font-size:16px; }
-.hour-temp { font-size:13px; font-weight:700; }
-.precip { color:#8ed8ff; font-size:10px; font-weight:700; }
-.chart { min-height:82px; padding:6px; }
+.selected-location { background:alpha(#1c5d9f,.38); border-color:#3199eb; }
+.location-name { font-size:16px; font-weight:700; }
+.location-time { font-size:13px; color:alpha(white,.64); }
+.location-condition { font-size:14px; color:alpha(white,.68); }
+.sidebar-range { font-size:13px; color:alpha(white,.68); }
+.sidebar-temp { font-size:31px; font-weight:350; letter-spacing:-1px; }
+.sidebar-condition-icon { font-size:24px; color:#ffca2b; }
+.add-location { min-height:32px; margin:6px 8px 7px; padding:0 10px; border-radius:9px; border:1px solid alpha(white,.16); background:alpha(#21344c,.72); font-size:13px; }
+.add-location:hover { background:alpha(#2d5275,.85); border-color:alpha(#71bcff,.70); }
+.dialog-cancel { min-height:36px; padding:0 18px; border-radius:10px; border:1px solid alpha(white,.16); background:alpha(#21344c,.72); }
+.attribution-small { font-size:12px; margin:10px 16px 15px; color:#52b1ff; }
+.hourly-panel { margin-top:8px; padding:12px 12px 10px; border:1px solid alpha(white,.10); border-radius:15px; background:alpha(#1a304b,.78); }
+.hour-tile { min-width:56px; min-height:92px; padding:5px 4px; border-radius:0; border-right:1px solid alpha(white,.16); background:transparent; font-size:14px; }
+.hour-tile:last-child { border-right:0; }
+.hour-tile label { color:alpha(white,.84); }
+.hour-icon,.day-icon { font-size:23px; }
+.hour-temp { font-size:18px; font-weight:700; }
+.precip { color:#8ed8ff; font-size:13px; font-weight:700; }
+.metric-tabs { margin-top:2px; padding:2px; min-height:38px; border-radius:13px; background:alpha(#1a304b,.86); border:1px solid alpha(white,.08); }
+.metric-tab { min-height:34px; padding:4px 20px; border-radius:11px; color:alpha(white,.90); font-size:14px; }
+.metric-tab:hover { background:alpha(white,.08); }
+.metric-tab:checked { background:linear-gradient(180deg,#2585d8,#1764ad); color:white; font-weight:700; box-shadow:0 2px 8px alpha(#0074d9,.38); }
+.metric-tab:disabled { opacity:.45; }
+.chart { min-height:82px; padding:8px; }
 .chart progressbar trough,.forecast-card progressbar trough { background:alpha(white,.12); }
 .chart progressbar progress,.forecast-card progressbar progress { background:#76d2ff; }
-.pill { border-radius:999px; padding:3px 8px; min-height:26px; font-size:12px; }
-.pill:checked { background:#79cfff; color:#10233e; font-weight:700; }
-.pill:disabled { opacity:.45; }
-.chart-value { font-size:11px; font-weight:700; }
-.chart-time { font-size:10px; color:alpha(white,.72); }
-.weather-dashboard { margin:0; }
-.weather-dashboard .metric-card { min-height:54px; }
-.radar-preview,.radar-full { background:#131a2e; border-radius:10px; }
-.radar-time { font-size:12px; font-weight:700; color:white; }
-.radar-legend { font-size:9px; font-weight:700; color:white; border-radius:4px; padding:2px 5px; background:linear-gradient(90deg,#3c87ff,#35d9ce,#ffe550,#ff8a2b,#d832d8); text-shadow:0 1px 2px black; }
+.pill { min-height:32px; padding:4px 11px; border-radius:10px; border:1px solid alpha(white,.12); background:alpha(#1b314b,.85); font-size:13px; }
+.pill:hover { border-color:alpha(#83caff,.7); background:alpha(#2a4866,.92); }
+.pill:checked { background:#1477ca; color:white; font-weight:700; }
+.layer-button { min-width:40px; min-height:38px; padding:0; border-radius:10px; border:1px solid alpha(white,.14); background:alpha(#1b314b,.92); }
+.layer-button:hover { background:alpha(#2d5275,.95); border-color:alpha(#83caff,.72); }
+.layer-menu { min-width:205px; }
+.layer-menu > box { min-height:30px; }
+.layer-menu checkbutton { min-height:30px; padding:4px 7px; border-radius:8px; }
+.layer-menu checkbutton:hover { background:alpha(white,.08); }
+.layer-menu switch { min-width:38px; }
+.weather-dashboard { margin-top:2px; }
+.radar-column { min-width:0; }
+.weather-dashboard .metric-card { min-height:74px; }
+.radar-card { padding:12px; }
+.radar-preview,.radar-full { background:#101d2d; border-radius:11px; }
+.radar-time { font-size:13px; font-weight:600; color:white; }
+.radar-legend { font-size:11px; font-weight:700; color:white; border-radius:4px; padding:3px 6px; background:linear-gradient(90deg,#3c87ff,#35d9ce,#ffe550,#ff8a2b,#d832d8); text-shadow:0 1px 2px black; }
 .radar-marker { color:white; background:#172343; border:2px solid white; border-radius:999px; padding:4px; font-size:12px; }
-.day-row { background:transparent; border-bottom:1px solid alpha(white,.14); border-radius:0; padding:2px 0; min-height:27px; font-size:12px; }
+.day-row { background:transparent; border-bottom:1px solid alpha(white,.13); border-radius:0; padding:5px 4px; min-height:32px; font-size:15px; }
 .day-row:hover { background:alpha(white,.08); }
-.day-row levelbar block.filled { background:linear-gradient(90deg,#79c8ff,#ffd36b); }
+.day-row levelbar { min-height:15px; }
+.day-row levelbar trough { background:alpha(white,.14); border-radius:9px; }
+.day-row levelbar block.filled { background:linear-gradient(90deg,#6cb5d0,#a4bd61 55%,#ffbc27); border-radius:9px; }
 .alert-card { background:alpha(#ffb447,.20); border-color:alpha(#ffd38b,.45); }
 .alert-severity { font-size:12px; font-weight:900; letter-spacing:1px; color:#ffe0a6; }
 .alert-title { font-size:19px; font-weight:700; }
+.conditions-grid { margin-top:0; }
+.conditions-grid > child { min-width:145px; }
 .weather-attribution { font-size:12px; color:alpha(white,.76); }
-.attribution-small { font-size:10px; margin:8px; }
 .title-2 { font-size:24px; font-weight:700; }
+scrolledwindow scrollbar { opacity:0; min-width:0; min-height:0; }
 "#;
 
 #[cfg(test)]
