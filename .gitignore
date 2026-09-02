@@ -1,0 +1,8 @@
+/target/
+/dist/
+*.p8
+.env
+.env.*
+Screenshot From *.png
+*.swp
+*.tmp

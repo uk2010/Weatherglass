@@ -1,0 +1,51 @@
+{
+  "currentWeather": {
+    "name": "CurrentWeather", "asOf": "2026-09-01T15:00:00Z", "conditionCode": "PartlyCloudy", "daylight": true,
+    "temperature": 24.2, "temperatureApparent": 25.1, "temperatureDewPoint": 16.4, "humidity": 0.58,
+    "cloudCover": 0.36, "pressure": 1015.2, "pressureTrend": "rising", "uvIndex": 5, "visibility": 16.8,
+    "windDirection": 245, "windSpeed": 15.1, "windGust": 24.0, "precipitationIntensity": 0.0,
+    "metadata": {"expireTime": "2099-09-01T15:05:00Z", "latitude": 41.8781, "longitude": -87.6298, "readTime": "2026-09-01T15:00:05Z", "units": "m"}
+  },
+  "forecastHourly": {
+    "name": "HourlyForecast", "metadata": {"expireTime": "2099-09-01T15:10:00Z"}, "hours": [
+      {"forecastStart":"2026-09-01T15:00:00Z","conditionCode":"PartlyCloudy","daylight":true,"temperature":24.2,"temperatureApparent":25.1,"precipitationChance":0.08,"humidity":0.58,"pressure":1015.2,"windSpeed":15.1,"windDirection":245},
+      {"forecastStart":"2026-09-01T16:00:00Z","conditionCode":"PartlyCloudy","daylight":true,"temperature":25.3,"temperatureApparent":26.0,"precipitationChance":0.12,"humidity":0.55,"pressure":1014.8,"windSpeed":16.0,"windDirection":250},
+      {"forecastStart":"2026-09-01T17:00:00Z","conditionCode":"SunShowers","daylight":true,"temperature":24.7,"temperatureApparent":25.5,"precipitationChance":0.34,"humidity":0.59,"pressure":1014.2,"windSpeed":17.5,"windDirection":252},
+      {"forecastStart":"2026-09-01T18:00:00Z","conditionCode":"PartlyCloudy","daylight":true,"temperature":24.0,"temperatureApparent":24.6,"precipitationChance":0.20,"humidity":0.61,"pressure":1014.0,"windSpeed":15.0,"windDirection":255},
+      {"forecastStart":"2026-09-01T19:00:00Z","conditionCode":"MostlyClear","daylight":true,"temperature":23.4,"temperatureApparent":23.8,"precipitationChance":0.09,"humidity":0.63,"pressure":1014.1,"windSpeed":13.2,"windDirection":250},
+      {"forecastStart":"2026-09-01T20:00:00Z","conditionCode":"Clear","daylight":true,"temperature":22.7,"temperatureApparent":22.8,"precipitationChance":0.04,"humidity":0.65,"pressure":1014.4,"windSpeed":11.0,"windDirection":245},
+      {"forecastStart":"2026-09-01T21:00:00Z","conditionCode":"Clear","daylight":true,"temperature":21.9,"temperatureApparent":21.7,"precipitationChance":0.02,"humidity":0.68,"pressure":1014.8,"windSpeed":9.2,"windDirection":238},
+      {"forecastStart":"2026-09-01T22:00:00Z","conditionCode":"MostlyClear","daylight":false,"temperature":21.1,"temperatureApparent":20.9,"precipitationChance":0.02,"humidity":0.70,"pressure":1015.0,"windSpeed":8.1,"windDirection":230},
+      {"forecastStart":"2026-09-01T23:00:00Z","conditionCode":"MostlyClear","daylight":false,"temperature":20.4,"temperatureApparent":20.1,"precipitationChance":0.02,"humidity":0.72,"pressure":1015.3,"windSpeed":7.0,"windDirection":225},
+      {"forecastStart":"2026-09-02T00:00:00Z","conditionCode":"Clear","daylight":false,"temperature":19.8,"temperatureApparent":19.5,"precipitationChance":0.01,"humidity":0.73,"pressure":1015.5,"windSpeed":6.4,"windDirection":220},
+      {"forecastStart":"2026-09-02T01:00:00Z","conditionCode":"Clear","daylight":false,"temperature":19.2,"temperatureApparent":18.9,"precipitationChance":0.01,"humidity":0.75,"pressure":1015.7,"windSpeed":5.8,"windDirection":215},
+      {"forecastStart":"2026-09-02T02:00:00Z","conditionCode":"Clear","daylight":false,"temperature":18.7,"temperatureApparent":18.4,"precipitationChance":0.01,"humidity":0.76,"pressure":1015.8,"windSpeed":5.2,"windDirection":210}
+    ]
+  },
+  "forecastDaily": {
+    "name":"DailyForecast", "metadata":{"expireTime":"2099-09-01T16:00:00Z"}, "days":[
+      {"forecastStart":"2026-09-01T05:00:00Z","conditionCode":"PartlyCloudy","temperatureMin":17.2,"temperatureMax":26.4,"precipitationChance":0.34,"precipitationAmount":0.8,"maxUvIndex":5,"sunrise":"2026-09-01T11:18:00Z","sunset":"2026-09-02T00:23:00Z","moonPhase":"waningGibbous","moonrise":"2026-09-02T02:12:00Z","moonset":"2026-09-01T16:41:00Z"},
+      {"forecastStart":"2026-09-02T05:00:00Z","conditionCode":"Clear","temperatureMin":16.1,"temperatureMax":27.8,"precipitationChance":0.06},
+      {"forecastStart":"2026-09-03T05:00:00Z","conditionCode":"MostlyClear","temperatureMin":17.3,"temperatureMax":29.0,"precipitationChance":0.08},
+      {"forecastStart":"2026-09-04T05:00:00Z","conditionCode":"Thunderstorms","temperatureMin":19.2,"temperatureMax":27.1,"precipitationChance":0.61},
+      {"forecastStart":"2026-09-05T05:00:00Z","conditionCode":"Rain","temperatureMin":15.0,"temperatureMax":22.4,"precipitationChance":0.72},
+      {"forecastStart":"2026-09-06T05:00:00Z","conditionCode":"PartlyCloudy","temperatureMin":14.3,"temperatureMax":23.8,"precipitationChance":0.18},
+      {"forecastStart":"2026-09-07T05:00:00Z","conditionCode":"Clear","temperatureMin":15.5,"temperatureMax":25.9,"precipitationChance":0.05},
+      {"forecastStart":"2026-09-08T05:00:00Z","conditionCode":"PartlyCloudy","temperatureMin":16.4,"temperatureMax":26.1,"precipitationChance":0.12},
+      {"forecastStart":"2026-09-09T05:00:00Z","conditionCode":"Cloudy","temperatureMin":17.8,"temperatureMax":24.2,"precipitationChance":0.26},
+      {"forecastStart":"2026-09-10T05:00:00Z","conditionCode":"SunShowers","temperatureMin":16.9,"temperatureMax":25.4,"precipitationChance":0.38}
+    ]
+  },
+  "forecastNextHour": {
+    "name":"NextHourForecast","metadata":{"expireTime":"2099-09-01T15:05:00Z"},"forecastStart":"2026-09-01T15:00:00Z","forecastEnd":"2026-09-01T16:00:00Z","summary":[],"minutes":[
+      {"startTime":"2026-09-01T15:00:00Z","precipitationChance":0.08,"precipitationIntensity":0.0},
+      {"startTime":"2026-09-01T15:10:00Z","precipitationChance":0.12,"precipitationIntensity":0.1,"precipitationType":"rain"},
+      {"startTime":"2026-09-01T15:20:00Z","precipitationChance":0.25,"precipitationIntensity":0.5,"precipitationType":"rain"},
+      {"startTime":"2026-09-01T15:30:00Z","precipitationChance":0.34,"precipitationIntensity":1.2,"precipitationType":"rain"},
+      {"startTime":"2026-09-01T15:40:00Z","precipitationChance":0.22,"precipitationIntensity":0.4,"precipitationType":"rain"},
+      {"startTime":"2026-09-01T15:50:00Z","precipitationChance":0.10,"precipitationIntensity":0.0}
+    ]
+  },
+  "weatherAlerts": {"name":"WeatherAlerts","metadata":{"expireTime":"2099-09-01T15:10:00Z"},"details":[]},
+  "fixtureExtension":{"preserved":true}
+}

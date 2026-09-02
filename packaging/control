@@ -1,0 +1,10 @@
+Package: weatherglass
+Version: 0.0.1
+Section: utils
+Priority: optional
+Architecture: ARCHITECTURE
+Maintainer: Weatherglass contributors <weatherglass@example.invalid>
+Depends: libgtk-4-1 (>= 4.18), libadwaita-1-0 (>= 1.6), ca-certificates
+Description: Native weather forecast and animated radar
+ Native GTK 4 weather application with Open-Meteo forecasts, saved locations,
+ offline cache, configurable units, animated radar, and optional WeatherKit.

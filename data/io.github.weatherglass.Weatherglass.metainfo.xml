@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.weatherglass.Weatherglass</id>
+  <name>Weatherglass</name>
+  <summary>A calm forecast dashboard with animated radar</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <description>
+    <p>Weatherglass presents current conditions, hourly and ten-day forecasts, animated precipitation radar, air quality, and astronomical details in an adaptive native GNOME interface.</p>
+    <p>Free, no-key Open-Meteo forecasts work by default. Apple WeatherKit remains available as an optional provider for users who supply their own credentials.</p>
+  </description>
+  <launchable type="desktop-id">io.github.weatherglass.Weatherglass.desktop</launchable>
+  <provides><binary>weatherglass</binary></provides>
+  <content_rating type="oars-1.1"/>
+  <url type="homepage">https://github.com/uk2010/Weatherglass</url>
+  <releases><release version="0.0.1" date="2026-09-02"><description><p>Initial personal desktop release.</p></description></release></releases>
+</component>

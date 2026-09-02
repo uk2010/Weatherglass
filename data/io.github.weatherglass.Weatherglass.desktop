@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Weatherglass
+Comment=A calm WeatherKit forecast for your desktop
+Exec=weatherglass
+Icon=io.github.weatherglass.Weatherglass
+Terminal=false
+Type=Application
+Categories=Utility;GTK;
+Keywords=weather;forecast;rain;temperature;WeatherKit;
+StartupNotify=true
+StartupWMClass=io.github.weatherglass.Weatherglass
+
