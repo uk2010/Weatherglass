@@ -546,6 +546,24 @@ fn render_forecast(state: &Rc<RefCell<UiState>>, views: &ViewRefs) {
     glib::idle_add_local_once(move || scroll.vadjustment().set_value(0.0));
 }
 
+fn hero_art_bytes(gradient: &str) -> &'static [u8] {
+    match gradient {
+        "clear" => include_bytes!("../data/hero/hero-clear.jpg"),
+        "cloudy" => include_bytes!("../data/hero/hero-cloudy.jpg"),
+        "fog" => include_bytes!("../data/hero/hero-fog.jpg"),
+        "night" => include_bytes!("../data/hero/hero-night.jpg"),
+        "rain" => include_bytes!("../data/hero/hero-rain.jpg"),
+        "snow" => include_bytes!("../data/hero/hero-snow.jpg"),
+        "storm" => include_bytes!("../data/hero/hero-storm.jpg"),
+        _ => include_bytes!("../data/hero/hero-cloudy.jpg"),
+    }
+}
+
+fn hero_art_texture(gradient: &str) -> gdk::Texture {
+    let bytes = glib::Bytes::from_static(hero_art_bytes(gradient));
+    gdk::Texture::from_bytes(&bytes).expect("embedded hero artwork must decode")
+}
+
 fn forecast_page(
     l: &SavedLocation,
     w: &WeatherResponse,
@@ -565,8 +583,30 @@ fn forecast_page(
         page.append(&banner)
     }
     if let Some(c) = &w.current_weather {
-        let hero = gtk::Box::new(Orientation::Vertical, 8);
+        let presentation = conditions::present(&c.condition_code, c.daylight);
+        let hero = gtk::Overlay::new();
         hero.add_css_class("hero");
+        hero.set_overflow(gtk::Overflow::Hidden);
+
+        let artwork = hero_art_texture(presentation.gradient);
+        let art = gtk::Picture::for_paintable(&artwork);
+        art.set_content_fit(gtk::ContentFit::Cover);
+        art.set_can_shrink(true);
+        art.set_hexpand(true);
+        art.set_vexpand(true);
+        art.add_css_class("hero-art");
+        hero.set_child(Some(&art));
+
+        let scrim = gtk::Box::new(Orientation::Vertical, 0);
+        scrim.add_css_class("hero-scrim");
+        scrim.set_hexpand(true);
+        scrim.set_vexpand(true);
+        hero.add_overlay(&scrim);
+
+        let hero_content = gtk::Box::new(Orientation::Vertical, 8);
+        hero_content.add_css_class("hero-content");
+        hero_content.set_hexpand(true);
+        hero_content.set_vexpand(true);
         let hero_top = gtk::Box::new(Orientation::Horizontal, 8);
         hero_top.add_css_class("hero-top");
         let hero_left = gtk::Box::new(Orientation::Vertical, 5);
@@ -603,14 +643,11 @@ fn forecast_page(
             state.settings.temperature,
         )));
         temp.add_css_class("hero-temp");
-        let icon = gtk::Label::new(Some(
-            conditions::present(&c.condition_code, c.daylight).symbol,
-        ));
+        let icon = gtk::Label::new(Some(presentation.symbol));
         icon.add_css_class("hero-icon");
         temperature_line.append(&temp);
         temperature_line.append(&icon);
-        let p = conditions::present(&c.condition_code, c.daylight);
-        let condition = gtk::Label::new(Some(p.description));
+        let condition = gtk::Label::new(Some(presentation.description));
         condition.add_css_class("hero-condition");
         condition.set_halign(Align::End);
         let hi_lo = w
@@ -635,7 +672,8 @@ fn forecast_page(
         hero_right.append(&range);
         hero_top.append(&hero_left);
         hero_top.append(&hero_right);
-        hero.append(&hero_top);
+        hero_content.append(&hero_top);
+        hero.add_overlay(&hero_content);
         page.append(&hero)
     }
     let dashboard = gtk::Grid::new();
@@ -726,17 +764,26 @@ fn forecast_page(
             row.append(&item)
         }
         scroll.set_child(Some(&row));
-        body.append(&scroll);
-        let metrics = gtk::Box::new(Orientation::Horizontal, 4);
-        metrics.add_css_class("metric-tabs");
         let chart = gtk::Box::new(Orientation::Vertical, 6);
         chart.add_css_class("chart");
         let chart_summary = gtk::Label::new(None);
         chart_summary.set_xalign(0.0);
         chart_summary.set_wrap(true);
         chart_summary.add_css_class("dim-label");
-        chart.set_visible(false);
-        chart_summary.set_visible(false);
+        let chart_view = gtk::Box::new(Orientation::Vertical, 3);
+        chart_view.add_css_class("hourly-chart-view");
+        chart_view.append(&chart);
+        chart_view.append(&chart_summary);
+        let view_stack = gtk::Stack::new();
+        view_stack.set_hexpand(true);
+        view_stack.set_vhomogeneous(false);
+        view_stack.add_named(&scroll, Some("hours"));
+        view_stack.add_named(&chart_view, Some("chart"));
+        view_stack.set_visible_child_name("hours");
+        body.append(&view_stack);
+
+        let metrics = gtk::Box::new(Orientation::Horizontal, 4);
+        metrics.add_css_class("metric-tabs");
         let metric_choices = [
             HourlyMetric::Temperature,
             HourlyMetric::Precipitation,
@@ -745,7 +792,7 @@ fn forecast_page(
             HourlyMetric::Pressure,
             HourlyMetric::FeelsLike,
         ];
-        let mut first_button: Option<gtk::ToggleButton> = None;
+        let metric_buttons = Rc::new(RefCell::new(Vec::<gtk::ToggleButton>::new()));
         let shown_metric = Rc::new(RefCell::new(None::<HourlyMetric>));
         for metric in metric_choices {
             let b = gtk::ToggleButton::with_label(metric.label());
@@ -755,32 +802,31 @@ fn forecast_page(
                 "Show the hourly {} chart",
                 metric.label().to_lowercase()
             )));
-            if let Some(first) = &first_button {
-                b.set_group(Some(first))
-            } else {
-                first_button = Some(b.clone());
-                b.set_active(true)
-            }
             b.set_sensitive(metric_series(hourly, metric, &state.settings).is_some());
-            let chart = chart.clone();
-            let summary = chart_summary.clone();
+            let view_stack = view_stack.clone();
+            let peer_buttons = metric_buttons.clone();
             let hourly = hourly.clone();
             let settings = state.settings.clone();
             let shown_metric = shown_metric.clone();
-            b.connect_clicked(move |button| {
-                if *shown_metric.borrow() == Some(metric) {
-                    *shown_metric.borrow_mut() = None;
-                    button.set_active(false);
-                    chart.set_visible(false);
-                    summary.set_visible(false);
-                } else {
+            let chart = chart.clone();
+            let summary = chart_summary.clone();
+            b.connect_toggled(move |button| {
+                if button.is_active() {
                     *shown_metric.borrow_mut() = Some(metric);
-                    button.set_active(true);
-                    chart.set_visible(true);
-                    summary.set_visible(true);
+                    let peers = peer_buttons.borrow().clone();
+                    for peer in peers {
+                        if peer.as_ptr() != button.as_ptr() && peer.is_active() {
+                            peer.set_active(false);
+                        }
+                    }
+                    view_stack.set_visible_child_name("chart");
                     render_hourly_chart(&chart, &summary, &hourly, metric, &settings, tz);
+                } else if *shown_metric.borrow() == Some(metric) {
+                    *shown_metric.borrow_mut() = None;
+                    view_stack.set_visible_child_name("hours");
                 }
             });
+            metric_buttons.borrow_mut().push(b.clone());
             metrics.append(&b)
         }
         let metric_scroll = gtk::ScrolledWindow::builder()
@@ -792,21 +838,8 @@ fn forecast_page(
             .child(&metrics)
             .build();
         sec.append(&body);
+        sec.append(&metric_scroll);
         dashboard.attach(&sec, 0, 0, 2, 1);
-        let metric_area = gtk::Box::new(Orientation::Vertical, 6);
-        metric_area.add_css_class("metric-area");
-        metric_area.append(&metric_scroll);
-        render_hourly_chart(
-            &chart,
-            &chart_summary,
-            hourly,
-            HourlyMetric::Temperature,
-            &state.settings,
-            tz,
-        );
-        metric_area.append(&chart);
-        metric_area.append(&chart_summary);
-        dashboard.attach(&metric_area, 0, 1, 2, 1)
     }
     if let Some(daily) = &w.forecast_daily {
         let (sec, body) = widgets::section("10-DAY FORECAST", None);
@@ -3162,14 +3195,17 @@ button.flat { padding:7px; border-radius:10px; }
 .light .sidebar-range,.light .location-time { color:alpha(#14213a,.68); }
 .light .location-list row { background:alpha(white,.35); border-color:alpha(#14213a,.08); }
 .light .selected-location { background:alpha(#6ca7e8,.28); border-color:alpha(#315f95,.50); }
-.hero { min-height:178px; padding:22px 28px 18px; border-radius:18px; background:linear-gradient(135deg,alpha(#1a4675,.96),alpha(#143457,.85) 55%,alpha(#7b8d9d,.58)); border:1px solid alpha(white,.10); box-shadow:inset 0 -50px 80px alpha(#071120,.24); }
+.hero { min-height:178px; border-radius:18px; background:#173450; border:1px solid alpha(white,.14); box-shadow:inset 0 -50px 80px alpha(#071120,.24); }
+.hero-art { min-height:178px; opacity:.96; }
+.hero-scrim { background:linear-gradient(90deg,alpha(#061323,.88) 0%,alpha(#061323,.58) 45%,alpha(#061323,.16) 100%),linear-gradient(180deg,alpha(#061323,.08),alpha(#061323,.48)); }
+.hero-content { min-height:178px; padding:22px 28px 18px; color:white; }
 .hero-top { min-height:130px; }
-.hero-location { font-size:31px; font-weight:750; letter-spacing:-.6px; }
+.hero-location { font-size:31px; font-weight:750; letter-spacing:-.6px; color:white; }
 .hero-date { font-size:16px; color:alpha(white,.80); }
 .hero-updated { font-size:14px; color:alpha(white,.62); }
 .hero-temp { font-size:62px; font-weight:300; letter-spacing:-3px; line-height:1; }
 .hero-icon { font-size:49px; color:#ffd43b; line-height:1; }
-.hero-condition { font-size:17px; font-weight:600; }
+.hero-condition { font-size:17px; font-weight:600; color:white; }
 .hero-range { font-size:16px; color:alpha(white,.86); }
 .section-title,.metric-title { font-size:13px; font-weight:800; letter-spacing:1.5px; opacity:.86; }
 .metric-title { letter-spacing:.8px; }

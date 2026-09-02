@@ -2,6 +2,8 @@
 
 Weatherglass is a native GTK 4/libadwaita desktop forecast for Ubuntu 26.04. It follows a calm, dense weather-dashboard information order while using original branding and interface assets. Free, no-key Open-Meteo forecast and CAMS air-quality data are enabled by default. Apple WeatherKit remains an optional forecast/alert source. RainViewer provides the separately attributed radar layer.
 
+The hero uses bundled, condition-aware scenic landscape artwork (clear, cloudy, fog, rain, snow, storm, and night) so the visual context changes with the forecast without downloading or scraping Apple imagery.
+
 ## Ubuntu prerequisites
 
 ```bash
